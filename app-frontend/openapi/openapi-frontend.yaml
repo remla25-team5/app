@@ -1,0 +1,95 @@
+openapi: 3.0.3
+info:
+  title: Sentiment Review API
+  version: 1.0.0
+  description: API to submit text for sentiment analysis, verify predictions, and check versions.
+
+paths:
+  /submit:
+    post:
+      summary: Submit text for sentiment analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+              required:
+                - text
+      responses:
+        '200':
+          description: Predicted sentiment result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sentiment:
+                    type: boolean
+                    description: true = positive, false = negative
+                  submissionId:
+                    type: string
+                    description: ID to be used for feedback verification
+
+  /verify:
+    post:
+      summary: Verify sentiment result
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                submissionId:
+                  type: string
+                isCorrect:
+                  type: boolean
+              required:
+                - submissionId
+                - isCorrect
+      responses:
+        '200':
+          description: Verification processing result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verified:
+                    type: boolean
+
+  /version/app:
+    get:
+      summary: Get application version
+      responses:
+        '200':
+          description: Application version
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "1.2.3"
+
+  /version/model:
+    get:
+      summary: Get model service version
+      responses:
+        '200':
+          description: Model service version
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  modelVersion:
+                    type: string
+                    example: "2025.04.01-ml-v5"
+
+
