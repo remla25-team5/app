@@ -28,7 +28,19 @@ npm install
 
 ## Running the Development Server
 
+The .env file is configured with http://localhost:3000 for the backend this works 
+for the mockserver but should be changed for the real backend, change this accordingly.
+
+Start the mock server if the actual backend is not running
+
+```bash
+cd mock
+node mockServer.js
+```
+
 To start the development server with the mock API:
+
+Make sure you're in the app-frontend folder
 
 ```bash
 npm run dev
