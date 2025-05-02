@@ -1,3 +1,4 @@
 git+https://github.com/remla25-team5/lib-version.git@v0.0.3
 Flask==2.3.3
 flasgger==0.9.7.1
+requests==2.32.3
