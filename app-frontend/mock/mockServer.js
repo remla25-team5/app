@@ -35,7 +35,9 @@ app.post('/verify', (req, res) => {
     // Optionally store or log verification
     console.log(`Verification for ${submissionId}: ${isCorrect}`);
 
-    res.json({ verified: true });
+    const verified = Math.random() < 0.5;
+
+    res.json({ verified });
 });
 
 // GET /version/app

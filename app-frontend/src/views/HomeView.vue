@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import Verify from "@/components/Verify.vue";
 
 // Reactive variable to store the input text
 const text = ref('');
@@ -82,7 +83,9 @@ const submitReview = async () => {
       <p class="message">{{ message }}</p>
       <div :class="['emoji', colorClass]">{{ face }}</div>
     </div>
+    <Verify :submissionId="submissionId"></Verify>
   </div>
+
 </template>
 
 
@@ -94,7 +97,7 @@ const submitReview = async () => {
   justify-content: center; /* centers vertically */
   text-align: center;
   width: 35vw; /* Set a fixed width */
-  height: 30vh; /* Set a fixed height */
+  height: 35vh; /* Set a fixed height */
   border: 2px solid #0056b3; /* Blue border */
   border-radius: 12px; /* Rounded corners */
   margin: 20px auto; /* Center the container with space around it */
@@ -113,23 +116,13 @@ const submitReview = async () => {
 .emoji {
   font-size: 4rem;
 }
-.green {
-  color: green;
-}
-.red {
-  color: red;
-}
-.gray {
-  color: gray;
-}
 
 .container {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 90vh;
-  padding: 20px;
+  height: 80vh;
 }
 
 .title {
