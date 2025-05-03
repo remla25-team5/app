@@ -1,0 +1,26 @@
+name: Bump
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: main
+        fetch-depth: 0
+    - name: Parse version info from tag
+      run: |
+        # GITHUB_REF is like refs/tags/v2.3.5, so strip the first 11 chars
+        VERSION=${GITHUB_REF:11}
+        MAJOR=$(echo "$VERSION" | cut -d . -f 1)
+        MINOR=$(echo "$VERSION" | cut -d . -f 2)
+        PATCH=$(echo "$VERSION" | cut -d . -f 3)
+        PATCH=$((PATCH + 1))
+        timestamp=$(date -u +"%Y%m%d.%H%M")
+        pre_version="v${MAJOR}.${MINOR}.${PATCH}-pre-${timestamp}"
+        echo "pre_version=$pre_version" >> $GITHUB_ENV
+    - run: |
+        git tag "${{ env.pre_version }}"
+        git push origin "${{ env.pre_version }}"
