@@ -51,7 +51,7 @@ app.get('/version/model', (req, res) => {
 });
 
 // Start server
-const PORT = 3000;
+const PORT = 8080;
 app.listen(PORT, () => {
     console.log(`Mock API server running at http://localhost:${PORT}`);
 });

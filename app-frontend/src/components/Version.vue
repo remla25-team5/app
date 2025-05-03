@@ -9,18 +9,31 @@ onMounted(async () => {
     const apiUrl = import.meta.env.VITE_API_URL; // e.g., http://localhost:3000
     const endpointAppVersion = `${apiUrl}/version/app`;
 
-    const appRes = await fetch(endpointAppVersion)
-    const appData = await appRes.json()
-    appVersion.value = appData.version
+    const appRes = await fetch(endpointAppVersion);
+    if (!appRes.ok) {  // If the status is not 200
+      const errorMessage = `Failed to fetch app version. Status: ${appRes.status}`;
+      alert(`${errorMessage} - ${await appRes.text()}`); // Show both status and response message
+      throw new Error(errorMessage);
+    }
+    const appData = await appRes.json();
+    appVersion.value = appData.version;
 
     const endpointModelVersion = `${apiUrl}/version/model`;
-    const modelRes = await fetch(endpointModelVersion)
-    const modelData = await modelRes.json()
-    modelVersion.value = modelData.modelVersion
+    const modelRes = await fetch(endpointModelVersion);
+    if (!modelRes.ok) {  // If the status is not 200
+      const errorMessage = `Failed to fetch model version. Status: ${modelRes.status}`;
+      alert(`${errorMessage} - ${await modelRes.text()}`); // Show both status and response message
+      throw new Error(errorMessage);
+    }
+    const modelData = await modelRes.json();
+    modelVersion.value = modelData.modelVersion;
+
   } catch (err) {
-    console.error('Failed to fetch version info:', err)
+    console.error('Error fetching version info:', err);
+    alert(`There was an issue fetching version info. Please try again later.`);
   }
-})
+});
+
 </script>
 
 <template>

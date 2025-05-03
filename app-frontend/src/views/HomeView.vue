@@ -51,7 +51,9 @@ const submitReview = async () => {
     submissionId.value = data.submissionId;
     text.value = '';
   } catch (error) {
-    alert(`Error submitting review ${error}`);
+    // Show the error message returned from the backend
+    alert(`Error while submitting review: ${error}`);
+    console.log(`Error while submitting review: ${error}`);
   }
 };
 

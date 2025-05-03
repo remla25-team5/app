@@ -44,10 +44,10 @@ const verifySentiment = async (isCorrect) => {
       statusMessage.value = result.verified ? 'Thanks, your verification has been processed successfully' :
           'Something went wrong processing your verification';
     } else {
-      throw new Error('Verification request failed')
+      alert('Verification request failed')
     }
   } catch (error) {
-    console.error('Error verifying sentiment:', error)
+    alert('Error verifying sentiment:', error)
   }
 }
 </script>
