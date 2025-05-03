@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import Verify from "@/components/Verify.vue";
+import Version from "@/components/Version.vue";
+import axios from "axios";
 
-// Reactive variable to store the input text
+
 const text = ref('');
-// Reactive boolean | null ref
 const sentiment = ref<boolean | null>(null)
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const face = computed(() => {
   if (sentiment.value === true) return '😄'
@@ -30,39 +32,26 @@ const submissionId = ref('');
 
 // Method to handle the submission of the review
 const submitReview = async () => {
-  const apiUrl = import.meta.env.VITE_API_URL; // e.g., http://localhost:3000
   const endpoint = `${apiUrl}/submit`;
 
   if (!text.value.trim()) {
-    console.warn('No text entered');
+    alert('Submitting empty review not allowed');
     return;
   }
 
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ text: text.value })
-    });
+    const { data } = await axios.post(endpoint, { text: text.value });
 
-    if (!response.ok) {
-      throw new Error(`Server error: ${response.status}`);
-    }
-
-    const result = await response.json();
     console.log('Review Submitted:', text.value);
-    console.log('Result:', result);
-    console.log('Sentiment:', result.sentiment);
-    console.log('submissionId:', result.submissionId);
-    sentiment.value = result.sentiment;
-    submissionId.value = result.submissionId;
+    console.log('Result:', data);
+    console.log('Sentiment:', data.sentiment);
+    console.log('submissionId:', data.submissionId);
 
-
-    text.value = '';  // Clear the text box after successful submission
+    sentiment.value = data.sentiment;
+    submissionId.value = data.submissionId;
+    text.value = '';
   } catch (error) {
-    console.error('Error submitting review:', error);
+    alert(`Error submitting review ${error}`);
   }
 };
 
@@ -84,6 +73,7 @@ const submitReview = async () => {
       <div :class="['emoji', colorClass]">{{ face }}</div>
     </div>
     <Verify :submissionId="submissionId"></Verify>
+    <Version></Version>
   </div>
 
 </template>
