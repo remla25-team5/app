@@ -1,58 +1,60 @@
-# .
+# Vue 3 Project with Mock Server
 
-This template should help get you started developing with Vue 3 in Vite.
+This project is a Vue 3 application that uses a mock server to serve mock responses during development. Follow the instructions below to set up and run the project locally.
 
-## Recommended IDE Setup
+## Prerequisites
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+Make sure you have **Node.js** and **npm** installed. You can verify the installation by running the following commands in your terminal:
 
-## Type Support for `.vue` Imports in TS
+```bash
+node -v
+npm -v
+```
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+## Installation
 
-## Customize configuration
+1. Clone the repository to your local machine:
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+```bash
+git clone git@github.com:remla25-team5/app.git
+cd app/app-frontend
+```
 
-## Project Setup
+2. Install dependencies:
 
-```sh
+```bash
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+## Running the Development Server
 
-```sh
+The .env file is configured with http://localhost:3000 for the backend this works 
+for the mockserver but should be changed for the real backend, change this accordingly.
+
+Start the mock server if the actual backend is not running
+
+```bash
+cd mock
+node mockServer.js
+```
+
+To start the development server with the mock API:
+
+Make sure you're in the app-frontend folder
+
+```bash
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+This will start both the Vue application and the mock server. The Vue application typically runs on `http://localhost:5173` (or another port if 5173 is already in use).
 
-```sh
+## Building for Production
+
+To build the application for production:
+
+```bash
 npm run build
 ```
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
+This will generate optimized production files in the `dist` directory which can be deployed to a web server.
 
-```sh
-npm run test:unit
-```
-
-### Run End-to-End Tests with [Playwright](https://playwright.dev)
-
-```sh
-# Install browsers for the first run
-npx playwright install
-
-# When testing on CI, must build the project first
-npm run build
-
-# Runs the end-to-end tests
-npm run test:e2e
-# Runs the tests only on Chromium
-npm run test:e2e -- --project=chromium
-# Runs the tests of a specific file
-npm run test:e2e -- tests/example.spec.ts
-# Runs the tests in debug mode
-npm run test:e2e -- --debug
-```
