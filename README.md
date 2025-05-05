@@ -16,10 +16,11 @@ It will:
 - Install all needed dependencies for backend
 - Launches backend with app.py
 
-The container will listen on port 8080, so run the container and map it to our own port 8080
+The container will listen on port 8080 by default, it can be controlled in the `.env` file. 
+Run the container and map it to our own port 8080:
 
 ```bash
-sudo docker run -p 8080:8080 my-website
+sudo docker run -p 8080:8080 --env-file=.env my-website
 ```
 
 Visit http://localhost:8080 in your browser to see the website.
