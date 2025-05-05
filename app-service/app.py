@@ -8,11 +8,13 @@ from lib_version.version_util import VersionUtil
 app = Flask(__name__, static_folder="dist", static_url_path="")
 swagger = Swagger(app)
 
-HOST = os.getenv('HOST', '0.0.0.0')
-PORT = os.getenv('PORT', '8080')
-MODEL_URL = os.getenv('MODEL_URL', 'http://model-service:8080')
+APP_SERVICE_HOST = os.getenv('APP_SERVICE_HOST', '0.0.0.0')
+APP_SERVICE_PORT = os.getenv('APP_SERVICE_PORT', '8080')
+MODEL_SERVICE_HOST = os.getenv('MODEL_SERVICE_HOST', '0.0.0.0')
+MODEL_SERVICE_PORT = os.getenv('MODEL_SERVICE_PORT', '5000')
+MODEL_URL = MODEL_SERVICE_HOST + ":" + MODEL_SERVICE_PORT
 
-IN_MEMORY_DATA = {}
+in_memory_data = {}
 submission_id_counter = 0
 
 
@@ -25,7 +27,6 @@ submission_id_counter = 0
 def index():
     # Serve the index.html from the dist folder
     return send_from_directory(os.path.join(app.static_folder), 'index.html')
-
 
 
 @app.route('/submit', methods=['POST'])
@@ -140,7 +141,7 @@ def verify():
         correct = data['isCorrect']
 
         # Store the verification result in memory
-        IN_MEMORY_DATA[submission_id] = correct
+        in_memory_data[submission_id] = correct
 
         return jsonify({"verified": True}), 200
 
@@ -196,4 +197,4 @@ def version_model():
         return jsonify({"error": f"Failed to get model version: {str(e)}"}), 500
 
 
-app.run(host=HOST, port=int(PORT), debug=True)
+app.run(host=APP_SERVICE_HOST, port=int(APP_SERVICE_PORT), debug=True)
