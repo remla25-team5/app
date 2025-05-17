@@ -4,6 +4,9 @@ import requests
 from flasgger import Swagger
 from flask import Flask, request, send_from_directory, jsonify
 from lib_version.version_util import VersionUtil
+import time
+from prometheus_client import Gauge, Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from flask import Response
 
 app = Flask(__name__, static_folder="dist", static_url_path="")
 swagger = Swagger(app)
@@ -17,11 +20,36 @@ MODEL_URL = MODEL_SERVICE_HOST + ":" + MODEL_SERVICE_PORT
 in_memory_data = {}
 submission_id_counter = 0
 
+# Metrics
+active_submissions_gauge = Gauge(
+    'active_submissions',
+    'Number of active submissions not yet verified (model-predicted sentiment)',
+    ['sentiment']
+)
 
-# /submit  - POST frontend sends a string, receives back a boolean (negative/positive) + submissionId
-# /verify - POST frontend sends submissionId + if the sentiment rating was correct or not
-# /version/app - GET the version of the app (app-frontend and app-service)
-# /version/model - GET the version of the model-service
+total_submissions_counter = Counter(
+    'total_submissions',
+    'Total number of submissions received (model-predicted sentiment)',
+    ['sentiment']
+)
+
+submission_timestamps = {}
+
+submission_verification_delay_seconds = Histogram(
+    'submission_verification_delay_seconds',
+    'Time between submission and verification',
+    ['verified', 'sentiment'],
+    buckets=[1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0, 600.0, float("inf")]
+)
+
+# Track active submission IDs to avoid double decrement
+active_submission_ids = set()
+
+
+@app.route('/metrics')
+def metrics():
+    # Expose Prometheus metrics
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
 @app.route('/')
 def index():
@@ -60,50 +88,49 @@ def submit():
                 type: string
                 description: Error message
         """
-    try:
-        # Retrieve JSON data from the request
-        data = request.get_json()
+    global submission_id_counter
 
-        # Check if 'text' exists in the incoming data
+    try:
+        data = request.get_json()
         if not data or 'text' not in data:
             return jsonify({"error": "Missing 'text' in request data"}), 400
 
         text = data['text']
 
-        # Generate a new submission ID
-        global submission_id_counter
         submission_id = str(submission_id_counter)
         submission_id_counter += 1
+        submission_timestamps[submission_id] = time.time()
 
-        # Prepare the payload to send to the model service
+        # Call model service
         headers = {"Content-Type": "application/json"}
         payload = {"text": text}
+        response = requests.post(MODEL_URL + "/predict", headers=headers, json=payload)
+        response.raise_for_status()
+        sentiment = response.json().get('sentiment')
+        if sentiment is None:
+            return jsonify({"error": "Sentiment not found in response"}), 500
 
-        # Make the request to the sentiment analysis service
-        try:
-            response = requests.post(MODEL_URL + "/predict", headers=headers, json=payload)
-            response.raise_for_status()  # Will raise an error for non-2xx responses
+        # sentiment = True if submission_id_counter % 2 == 0 else False
 
-            # Attempt to extract the sentiment from the response
-            sentiment = response.json().get('sentiment')
+        sentiment_label = str(sentiment).lower()
+        in_memory_data[submission_id] = {
+            'sentiment': sentiment_label
+        }
+        total_submissions_counter.labels(sentiment=sentiment_label).inc()
+        active_submissions_gauge.labels(sentiment=sentiment_label).inc()
+        active_submission_ids.add(submission_id)
 
-            # Check if the sentiment key exists
-            if sentiment is None:
-                return jsonify({"error": "Sentiment not found in response"}), 500
+        return jsonify({"sentiment": sentiment, "submissionId": submission_id}), 200
 
-            # Return the sentiment and the submission ID
-            return jsonify({"sentiment": sentiment, "submissionId": submission_id}), 200
-
-        except requests.exceptions.RequestException as e:
-            # Handle request-related errors (e.g., network issues, timeouts, 5xx errors)
-            app.logger.error(f"Error when calling sentiment analysis service: {e}")
-            return jsonify({"error": f"Failed to analyze sentiment: {str(e)}"}), 500
+    except requests.exceptions.RequestException as e:
+        app.logger.error(f"Error when calling sentiment analysis service: {e}")
+        return jsonify({"error": f"Failed to analyze sentiment: {str(e)}"}), 500
 
     except Exception as e:
-        # Handle any general errors, such as issues with the incoming JSON or other unexpected errors
         app.logger.error(f"Error processing request: {e}")
         return jsonify({"error": "An error occurred while processing the request"}), 500
 
+# Fixed
 
 @app.route('/api/verify', methods=['POST'])
 def verify():
@@ -132,24 +159,38 @@ def verify():
         """
     try:
         data = request.get_json()
-
-        # Check if 'submissionId' and 'isCorrect' are in the JSON payload
         if 'submissionId' not in data or 'isCorrect' not in data:
             return jsonify({"error": "Missing 'submissionId' or 'isCorrect' in request data"}), 400
 
         submission_id = data['submissionId']
         correct = data['isCorrect']
 
-        # Store the verification result in memory
-        in_memory_data[submission_id] = correct
+        # Lookup sentiment associated with this submission
+        sentiment_label = in_memory_data.get(submission_id, {}).get('sentiment')
+        if not sentiment_label:
+            return jsonify({"error": "Sentiment data missing for submission"}), 400
+
+        # Update in-memory store (optional, for logging or audit)
+        in_memory_data[submission_id]['verified'] = correct
+
+        # Decrement active submissions gauge
+        if submission_id in active_submission_ids:
+            active_submissions_gauge.labels(sentiment=sentiment_label).dec()
+            active_submission_ids.remove(submission_id)
+
+        # Record delay histogram
+        created_time = submission_timestamps.pop(submission_id, None)
+        if created_time is not None:
+            delay = time.time() - created_time
+            submission_verification_delay_seconds.labels(
+                verified=str(correct), sentiment=sentiment_label
+            ).observe(delay)
 
         return jsonify({"verified": True}), 200
 
     except Exception as e:
-        # Catch any general errors and return a 500 server error with the error message
         app.logger.error(f"Error processing request: {e}")
         return jsonify({"error": "An error occurred while processing the request"}), 500
-
 
 @app.route('/api/version/app', methods=['GET'])
 def version_app():
@@ -190,6 +231,7 @@ def version_model():
         if response.status_code == 200:
             version = response.json().get('version')
             return jsonify({"version": version}), 200
+        return None
 
     except requests.exceptions.RequestException as e:
         # Catch any requests-related exception (timeouts, network errors, etc.)
