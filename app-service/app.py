@@ -29,7 +29,7 @@ def index():
     return send_from_directory(os.path.join(app.static_folder), 'index.html')
 
 
-@app.route('/submit', methods=['POST'])
+@app.route('/api/submit', methods=['POST'])
 def submit():
     """
     Submit a string for sentiment analysis
@@ -105,7 +105,7 @@ def submit():
         return jsonify({"error": "An error occurred while processing the request"}), 500
 
 
-@app.route('/verify', methods=['POST'])
+@app.route('/api/verify', methods=['POST'])
 def verify():
     """
     Verify the sentiment analysis result
@@ -151,7 +151,7 @@ def verify():
         return jsonify({"error": "An error occurred while processing the request"}), 500
 
 
-@app.route('/version/app', methods=['GET'])
+@app.route('/api/version/app', methods=['GET'])
 def version_app():
     """
     Get the version of the app
@@ -169,7 +169,7 @@ def version_app():
     return {"version": version}, 200
 
 
-@app.route('/version/model', methods=['GET'])
+@app.route('/api/version/model', methods=['GET'])
 def version_model():
     """
     Get the version of the model
