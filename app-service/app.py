@@ -32,27 +32,17 @@ total_submissions_counter = Counter(
     'Total number of submissions received'
 )
 
-request_latency_histogram = Histogram(
-    'request_latency_seconds',
-    'Latency of requests in seconds',
-    ['endpoint', 'method']
-)
+submission_timestamps = {}
 
+submission_verification_delay_histogram = Histogram(
+    'submission_verification_delay_seconds',
+    'Time between submission and verification',
+    ['verified'],
+    buckets=[1, 2, 5, 10, 30, 60, 120, 300, 600]
+)
 # Track active submission IDs to avoid double decrement
 active_submission_ids = set()
 
-
-@app.before_request
-def start_timer():
-    request.start_time = time.time()
-
-@app.after_request
-def record_latency(response):
-    latency = time.time() - request.start_time
-    endpoint = request.endpoint or 'unknown'
-    method = request.method
-    request_latency_histogram.labels(endpoint=endpoint, method=method).observe(latency)
-    return response
 
 @app.route('/metrics')
 def metrics():
@@ -96,43 +86,42 @@ def submit():
                 type: string
                 description: Error message
         """
-    with request_latency_histogram.labels(endpoint='submit', method='POST').time():
-        global submission_id_counter
+    global submission_id_counter
 
-        try:
-            data = request.get_json()
-            if not data or 'text' not in data:
-                return jsonify({"error": "Missing 'text' in request data"}), 400
+    try:
+        data = request.get_json()
+        if not data or 'text' not in data:
+            return jsonify({"error": "Missing 'text' in request data"}), 400
 
-            text = data['text']
+        text = data['text']
 
-            submission_id = str(submission_id_counter)
-            submission_id_counter += 1
+        submission_id = str(submission_id_counter)
+        submission_id_counter += 1
+        submission_timestamps[submission_id] = time.time()
 
-            # Call model service
-            headers = {"Content-Type": "application/json"}
-            payload = {"text": text}
-            response = requests.post(MODEL_URL + "/predict", headers=headers, json=payload)
-            response.raise_for_status()
-            sentiment = response.json().get('sentiment')
-            if sentiment is None:
-                return jsonify({"error": "Sentiment not found in response"}), 500
+        # Call model service
+        headers = {"Content-Type": "application/json"}
+        payload = {"text": text}
+        response = requests.post(MODEL_URL + "/predict", headers=headers, json=payload)
+        response.raise_for_status()
+        sentiment = response.json().get('sentiment')
+        if sentiment is None:
+            return jsonify({"error": "Sentiment not found in response"}), 500
 
-            # Update metrics
-            total_submissions_counter.inc()
-            active_submissions_gauge.labels(endpoint='submit').inc()
-            active_submission_ids.add(submission_id)
+        # Update metrics
+        total_submissions_counter.inc()
+        active_submissions_gauge.labels(endpoint='submit').inc()
+        active_submission_ids.add(submission_id)
 
-            return jsonify({"sentiment": sentiment, "submissionId": submission_id}), 200
+        return jsonify({"sentiment": sentiment, "submissionId": submission_id}), 200
 
-        except requests.exceptions.RequestException as e:
-            app.logger.error(f"Error when calling sentiment analysis service: {e}")
-            return jsonify({"error": f"Failed to analyze sentiment: {str(e)}"}), 500
+    except requests.exceptions.RequestException as e:
+        app.logger.error(f"Error when calling sentiment analysis service: {e}")
+        return jsonify({"error": f"Failed to analyze sentiment: {str(e)}"}), 500
 
-        except Exception as e:
-            app.logger.error(f"Error processing request: {e}")
-            return jsonify({"error": "An error occurred while processing the request"}), 500
-
+    except Exception as e:
+        app.logger.error(f"Error processing request: {e}")
+        return jsonify({"error": "An error occurred while processing the request"}), 500
 
 @app.route('/api/verify', methods=['POST'])
 def verify():
@@ -159,27 +148,31 @@ def verify():
                 verified:
                 type: boolean
         """
-    with request_latency_histogram.labels(endpoint='verify', method='POST').time():
-        try:
-            data = request.get_json()
-            if 'submissionId' not in data or 'isCorrect' not in data:
-                return jsonify({"error": "Missing 'submissionId' or 'isCorrect' in request data"}), 400
+    try:
+        data = request.get_json()
+        if 'submissionId' not in data or 'isCorrect' not in data:
+            return jsonify({"error": "Missing 'submissionId' or 'isCorrect' in request data"}), 400
 
-            submission_id = data['submissionId']
-            correct = data['isCorrect']
+        submission_id = data['submissionId']
+        correct = data['isCorrect']
 
-            in_memory_data[submission_id] = correct
+        in_memory_data[submission_id] = correct
 
-            # Decrement gauge if submission id was active (prevent negative values)
-            if submission_id in active_submission_ids:
-                active_submissions_gauge.labels(endpoint='submit').dec()
-                active_submission_ids.remove(submission_id)
+        # Decrement gauge if submission id was active (prevent negative values)
+        if submission_id in active_submission_ids:
+            active_submissions_gauge.labels(endpoint='submit').dec()
+            active_submission_ids.remove(submission_id)
 
-            return jsonify({"verified": True}), 200
+        created_time = submission_timestamps.pop(submission_id, None)
+        if created_time is not None:
+            delay = time.time() - created_time
+            submission_verification_delay_histogram.labels(verified=str(correct)).observe(delay)
 
-        except Exception as e:
-            app.logger.error(f"Error processing request: {e}")
-            return jsonify({"error": "An error occurred while processing the request"}), 500
+        return jsonify({"verified": True}), 200
+
+    except Exception as e:
+        app.logger.error(f"Error processing request: {e}")
+        return jsonify({"error": "An error occurred while processing the request"}), 500
 
 
 @app.route('/api/version/app', methods=['GET'])
@@ -221,6 +214,7 @@ def version_model():
         if response.status_code == 200:
             version = response.json().get('version')
             return jsonify({"version": version}), 200
+        return None
 
     except requests.exceptions.RequestException as e:
         # Catch any requests-related exception (timeouts, network errors, etc.)
