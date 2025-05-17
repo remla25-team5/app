@@ -21,8 +21,8 @@ watch(
 
 // Function to send verification request to the backend
 const verifySentiment = async (isCorrect) => {
-  const apiUrl = import.meta.env.VITE_API_URL // Base URL of the API
-  const endpoint = `${apiUrl}/verify`
+  // const apiUrl = import.meta.env.VITE_API_URL // Base URL of the API
+  const endpoint = '/api/verify'
 
   try {
     const response = await fetch(endpoint, {

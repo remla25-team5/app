@@ -7,7 +7,7 @@ import axios from "axios";
 
 const text = ref('');
 const sentiment = ref<boolean | null>(null)
-const apiUrl = import.meta.env.VITE_API_URL;
+// const apiUrl = `http://${import.meta.env.VITE_APP_SERVICE_HOST}:${import.meta.env.VITE_APP_SERVICE_PORT}`;
 
 const face = computed(() => {
   if (sentiment.value === true) return '😄'
@@ -32,7 +32,7 @@ const submissionId = ref('');
 
 // Method to handle the submission of the review
 const submitReview = async () => {
-  const endpoint = `${apiUrl}/submit`;
+  const endpoint = 'api/submit';
 
   if (!text.value.trim()) {
     alert('Submitting empty review not allowed');
