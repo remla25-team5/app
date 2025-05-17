@@ -23,23 +23,25 @@ submission_id_counter = 0
 # Metrics
 active_submissions_gauge = Gauge(
     'active_submissions',
-    'Number of active submissions not yet verified',
-    ['endpoint']
+    'Number of active submissions not yet verified (model-predicted sentiment)',
+    ['sentiment']
 )
 
 total_submissions_counter = Counter(
     'total_submissions',
-    'Total number of submissions received'
+    'Total number of submissions received (model-predicted sentiment)',
+    ['sentiment']
 )
 
 submission_timestamps = {}
 
-submission_verification_delay_histogram = Histogram(
+submission_verification_delay_seconds = Histogram(
     'submission_verification_delay_seconds',
     'Time between submission and verification',
-    ['verified'],
-    buckets=[1, 2, 5, 10, 30, 60, 120, 300, 600]
+    ['verified', 'sentiment'],
+    buckets=[1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0, 600.0, float("inf")]
 )
+
 # Track active submission IDs to avoid double decrement
 active_submission_ids = set()
 
@@ -108,9 +110,14 @@ def submit():
         if sentiment is None:
             return jsonify({"error": "Sentiment not found in response"}), 500
 
-        # Update metrics
-        total_submissions_counter.inc()
-        active_submissions_gauge.labels(endpoint='submit').inc()
+        # sentiment = True if submission_id_counter % 2 == 0 else False
+
+        sentiment_label = str(sentiment).lower()
+        in_memory_data[submission_id] = {
+            'sentiment': sentiment_label
+        }
+        total_submissions_counter.labels(sentiment=sentiment_label).inc()
+        active_submissions_gauge.labels(sentiment=sentiment_label).inc()
         active_submission_ids.add(submission_id)
 
         return jsonify({"sentiment": sentiment, "submissionId": submission_id}), 200
@@ -158,24 +165,32 @@ def verify():
         submission_id = data['submissionId']
         correct = data['isCorrect']
 
-        in_memory_data[submission_id] = correct
+        # Lookup sentiment associated with this submission
+        sentiment_label = in_memory_data.get(submission_id, {}).get('sentiment')
+        if not sentiment_label:
+            return jsonify({"error": "Sentiment data missing for submission"}), 400
 
-        # Decrement gauge if submission id was active (prevent negative values)
+        # Update in-memory store (optional, for logging or audit)
+        in_memory_data[submission_id]['verified'] = correct
+
+        # Decrement active submissions gauge
         if submission_id in active_submission_ids:
-            active_submissions_gauge.labels(endpoint='submit').dec()
+            active_submissions_gauge.labels(sentiment=sentiment_label).dec()
             active_submission_ids.remove(submission_id)
 
+        # Record delay histogram
         created_time = submission_timestamps.pop(submission_id, None)
         if created_time is not None:
             delay = time.time() - created_time
-            submission_verification_delay_histogram.labels(verified=str(correct)).observe(delay)
+            submission_verification_delay_seconds.labels(
+                verified=str(correct), sentiment=sentiment_label
+            ).observe(delay)
 
         return jsonify({"verified": True}), 200
 
     except Exception as e:
         app.logger.error(f"Error processing request: {e}")
         return jsonify({"error": "An error occurred while processing the request"}), 500
-
 
 @app.route('/api/version/app', methods=['GET'])
 def version_app():
