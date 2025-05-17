@@ -123,6 +123,8 @@ def submit():
         app.logger.error(f"Error processing request: {e}")
         return jsonify({"error": "An error occurred while processing the request"}), 500
 
+# Fixed
+
 @app.route('/api/verify', methods=['POST'])
 def verify():
     """
