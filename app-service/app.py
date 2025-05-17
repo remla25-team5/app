@@ -4,6 +4,9 @@ import requests
 from flasgger import Swagger
 from flask import Flask, request, send_from_directory, jsonify
 from lib_version.version_util import VersionUtil
+import time
+from prometheus_client import Gauge, Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from flask import Response
 
 app = Flask(__name__, static_folder="dist", static_url_path="")
 swagger = Swagger(app)
@@ -17,11 +20,44 @@ MODEL_URL = MODEL_SERVICE_HOST + ":" + MODEL_SERVICE_PORT
 in_memory_data = {}
 submission_id_counter = 0
 
+# Metrics
+active_submissions_gauge = Gauge(
+    'active_submissions',
+    'Number of active submissions not yet verified',
+    ['endpoint']
+)
 
-# /submit  - POST frontend sends a string, receives back a boolean (negative/positive) + submissionId
-# /verify - POST frontend sends submissionId + if the sentiment rating was correct or not
-# /version/app - GET the version of the app (app-frontend and app-service)
-# /version/model - GET the version of the model-service
+total_submissions_counter = Counter(
+    'total_submissions',
+    'Total number of submissions received'
+)
+
+request_latency_histogram = Histogram(
+    'request_latency_seconds',
+    'Latency of requests in seconds',
+    ['endpoint', 'method']
+)
+
+# Track active submission IDs to avoid double decrement
+active_submission_ids = set()
+
+
+@app.before_request
+def start_timer():
+    request.start_time = time.time()
+
+@app.after_request
+def record_latency(response):
+    latency = time.time() - request.start_time
+    endpoint = request.endpoint or 'unknown'
+    method = request.method
+    request_latency_histogram.labels(endpoint=endpoint, method=method).observe(latency)
+    return response
+
+@app.route('/metrics')
+def metrics():
+    # Expose Prometheus metrics
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
 @app.route('/')
 def index():
@@ -60,49 +96,42 @@ def submit():
                 type: string
                 description: Error message
         """
-    try:
-        # Retrieve JSON data from the request
-        data = request.get_json()
-
-        # Check if 'text' exists in the incoming data
-        if not data or 'text' not in data:
-            return jsonify({"error": "Missing 'text' in request data"}), 400
-
-        text = data['text']
-
-        # Generate a new submission ID
+    with request_latency_histogram.labels(endpoint='submit', method='POST').time():
         global submission_id_counter
-        submission_id = str(submission_id_counter)
-        submission_id_counter += 1
 
-        # Prepare the payload to send to the model service
-        headers = {"Content-Type": "application/json"}
-        payload = {"text": text}
-
-        # Make the request to the sentiment analysis service
         try:
+            data = request.get_json()
+            if not data or 'text' not in data:
+                return jsonify({"error": "Missing 'text' in request data"}), 400
+
+            text = data['text']
+
+            submission_id = str(submission_id_counter)
+            submission_id_counter += 1
+
+            # Call model service
+            headers = {"Content-Type": "application/json"}
+            payload = {"text": text}
             response = requests.post(MODEL_URL + "/predict", headers=headers, json=payload)
-            response.raise_for_status()  # Will raise an error for non-2xx responses
-
-            # Attempt to extract the sentiment from the response
+            response.raise_for_status()
             sentiment = response.json().get('sentiment')
-
-            # Check if the sentiment key exists
             if sentiment is None:
                 return jsonify({"error": "Sentiment not found in response"}), 500
 
-            # Return the sentiment and the submission ID
+            # Update metrics
+            total_submissions_counter.inc()
+            active_submissions_gauge.labels(endpoint='submit').inc()
+            active_submission_ids.add(submission_id)
+
             return jsonify({"sentiment": sentiment, "submissionId": submission_id}), 200
 
         except requests.exceptions.RequestException as e:
-            # Handle request-related errors (e.g., network issues, timeouts, 5xx errors)
             app.logger.error(f"Error when calling sentiment analysis service: {e}")
             return jsonify({"error": f"Failed to analyze sentiment: {str(e)}"}), 500
 
-    except Exception as e:
-        # Handle any general errors, such as issues with the incoming JSON or other unexpected errors
-        app.logger.error(f"Error processing request: {e}")
-        return jsonify({"error": "An error occurred while processing the request"}), 500
+        except Exception as e:
+            app.logger.error(f"Error processing request: {e}")
+            return jsonify({"error": "An error occurred while processing the request"}), 500
 
 
 @app.route('/api/verify', methods=['POST'])
@@ -130,25 +159,27 @@ def verify():
                 verified:
                 type: boolean
         """
-    try:
-        data = request.get_json()
+    with request_latency_histogram.labels(endpoint='verify', method='POST').time():
+        try:
+            data = request.get_json()
+            if 'submissionId' not in data or 'isCorrect' not in data:
+                return jsonify({"error": "Missing 'submissionId' or 'isCorrect' in request data"}), 400
 
-        # Check if 'submissionId' and 'isCorrect' are in the JSON payload
-        if 'submissionId' not in data or 'isCorrect' not in data:
-            return jsonify({"error": "Missing 'submissionId' or 'isCorrect' in request data"}), 400
+            submission_id = data['submissionId']
+            correct = data['isCorrect']
 
-        submission_id = data['submissionId']
-        correct = data['isCorrect']
+            in_memory_data[submission_id] = correct
 
-        # Store the verification result in memory
-        in_memory_data[submission_id] = correct
+            # Decrement gauge if submission id was active (prevent negative values)
+            if submission_id in active_submission_ids:
+                active_submissions_gauge.labels(endpoint='submit').dec()
+                active_submission_ids.remove(submission_id)
 
-        return jsonify({"verified": True}), 200
+            return jsonify({"verified": True}), 200
 
-    except Exception as e:
-        # Catch any general errors and return a 500 server error with the error message
-        app.logger.error(f"Error processing request: {e}")
-        return jsonify({"error": "An error occurred while processing the request"}), 500
+        except Exception as e:
+            app.logger.error(f"Error processing request: {e}")
+            return jsonify({"error": "An error occurred while processing the request"}), 500
 
 
 @app.route('/api/version/app', methods=['GET'])
