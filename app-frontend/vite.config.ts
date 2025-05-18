@@ -19,7 +19,7 @@ export default defineConfig({
     proxy: {
       // Proxy API requests to your backend server
       '/api': {
-        target: 'http://localhost:8080', // Your backend host and port
+        target: 'http://localhost:8080', // Use environment variable or default
         changeOrigin: true,
         secure: false, // Set to true if using HTTPS and self-signed certs
       },

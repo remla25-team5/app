@@ -4,10 +4,11 @@ import Verify from "@/components/Verify.vue";
 import Version from "@/components/Version.vue";
 import axios from "axios";
 
+// Use environment variables for API base URL
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const text = ref('');
 const sentiment = ref<boolean | null>(null)
-// const apiUrl = `http://${import.meta.env.VITE_APP_SERVICE_HOST}:${import.meta.env.VITE_APP_SERVICE_PORT}`;
 
 const face = computed(() => {
   if (sentiment.value === true) return '😄'
@@ -32,7 +33,7 @@ const submissionId = ref('');
 
 // Method to handle the submission of the review
 const submitReview = async () => {
-  const endpoint = 'api/submit';
+  const endpoint = `${apiBaseUrl}/submit`;
 
   if (!text.value.trim()) {
     alert('Submitting empty review not allowed');
@@ -151,5 +152,17 @@ const submitReview = async () => {
 
 .submit-btn:hover {
   background-color: #0056b3;
+}
+
+.green {
+  color: #4CAF50;
+}
+
+.red {
+  color: #F44336;
+}
+
+.gray {
+  color: #9E9E9E;
 }
 </style>
