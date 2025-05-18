@@ -8,6 +8,9 @@ const props = defineProps({
   }
 })
 
+// Use environment variables for API base URL
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+
 const statusMessage = ref('')
 const verificationProcessed = ref(false)
 
@@ -21,8 +24,7 @@ watch(
 
 // Function to send verification request to the backend
 const verifySentiment = async (isCorrect) => {
-  // const apiUrl = import.meta.env.VITE_API_URL // Base URL of the API
-  const endpoint = '/api/verify'
+  const endpoint = `${apiBaseUrl}/verify`
 
   try {
     const response = await fetch(endpoint, {

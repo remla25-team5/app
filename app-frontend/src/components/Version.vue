@@ -4,11 +4,12 @@ import { ref, onMounted } from 'vue'
 const appVersion = ref('')
 const modelVersion = ref('')
 
+// Use environment variables for API base URL
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+
 onMounted(async () => {
   try {
-    // const apiUrl = `http://${import.meta.env.VITE_APP_SERVICE_HOST}:${import.meta.env.VITE_APP_SERVICE_PORT}`;
-    // const apiUrl = import.meta.env.VITE_API_URL; // e.g., http://localhost:3000
-    const endpointAppVersion = '/api/version/app';
+    const endpointAppVersion = `${apiBaseUrl}/version/app`;
 
     const appRes = await fetch(endpointAppVersion);
     if (!appRes.ok) {  // If the status is not 200
@@ -19,7 +20,7 @@ onMounted(async () => {
     const appData = await appRes.json();
     appVersion.value = appData.version;
 
-    const endpointModelVersion = '/api/version/model';
+    const endpointModelVersion = `${apiBaseUrl}/version/model`;
     const modelRes = await fetch(endpointModelVersion);
     if (!modelRes.ok) {  // If the status is not 200
       const errorMessage = `Failed to fetch model version. Status: ${modelRes.status}`;
@@ -27,7 +28,7 @@ onMounted(async () => {
       throw new Error(errorMessage);
     }
     const modelData = await modelRes.json();
-    modelVersion.value = modelData.modelVersion;
+    modelVersion.value = modelData.version || modelData.modelVersion;
 
   } catch (err) {
     console.error('Error fetching version info:', err);

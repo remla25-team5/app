@@ -12,7 +12,12 @@ APP_SERVICE_HOST = os.getenv('APP_SERVICE_HOST', '0.0.0.0')
 APP_SERVICE_PORT = os.getenv('APP_SERVICE_PORT', '8080')
 MODEL_SERVICE_HOST = os.getenv('MODEL_SERVICE_HOST', '0.0.0.0')
 MODEL_SERVICE_PORT = os.getenv('MODEL_SERVICE_PORT', '5000')
-MODEL_URL = MODEL_SERVICE_HOST + ":" + MODEL_SERVICE_PORT
+
+# Fix URL construction to handle both formats with and without protocol
+if MODEL_SERVICE_HOST.startswith('http://') or MODEL_SERVICE_HOST.startswith('https://'):
+    MODEL_URL = f"{MODEL_SERVICE_HOST}:{MODEL_SERVICE_PORT}"
+else:
+    MODEL_URL = f"http://{MODEL_SERVICE_HOST}:{MODEL_SERVICE_PORT}"
 
 in_memory_data = {}
 submission_id_counter = 0
