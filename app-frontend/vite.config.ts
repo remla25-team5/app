@@ -4,6 +4,9 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
+// Read API target from environment variable or use localhost as default
+const API_TARGET = process.env.VITE_API_TARGET || 'http://localhost:8080'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -19,7 +22,7 @@ export default defineConfig({
     proxy: {
       // Proxy API requests to your backend server
       '/api': {
-        target: 'http://localhost:8080', // Your backend host and port
+        target: API_TARGET, // Use environment variable or default
         changeOrigin: true,
         secure: false, // Set to true if using HTTPS and self-signed certs
       },
