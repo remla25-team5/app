@@ -7,6 +7,7 @@ from lib_version.version_util import VersionUtil
 import time
 from prometheus_client import Gauge, Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from flask import Response
+from collections import deque
 
 app = Flask(__name__, static_folder="dist", static_url_path="")
 swagger = Swagger(app)
@@ -50,6 +51,32 @@ submission_verification_delay_seconds = Histogram(
 # Track active submission IDs to avoid double decrement
 active_submission_ids = set()
 
+# Store (timestamp, is_correct) for recent verifications
+recent_verifications = deque(maxlen=1000)  # Adjust maxlen as needed
+ROLLING_WINDOW_SECONDS = 604800  # 1 week
+
+verification_error_rate_gauge = Gauge(
+    'verification_error_rate_last_week',
+    'Percentage of incorrect verifications in the last week'
+)
+
+# ML Test Score: Monitor 7: The model has not experienced a regression in prediction quality on served data
+def update_verification_error_rate():
+    """
+    Update the verification error rate based on recent verifications.
+    This function calculates the error rate over a rolling window of the last week.
+    """
+    now = time.time()
+    # Remove old entries
+    while recent_verifications and recent_verifications[0][0] < now - ROLLING_WINDOW_SECONDS:
+        recent_verifications.popleft()
+    if not recent_verifications:
+        verification_error_rate_gauge.set(0)
+        return
+    total = len(recent_verifications)
+    incorrect = sum(1 for t, is_correct in recent_verifications if not is_correct)
+    error_rate = incorrect / total
+    verification_error_rate_gauge.set(error_rate)
 
 @app.route('/metrics')
 def metrics():
@@ -177,6 +204,10 @@ def verify():
 
         # Update in-memory store (optional, for logging or audit)
         in_memory_data[submission_id]['verified'] = correct
+
+        # Track verification outcome
+        recent_verifications.append((time.time(), correct))
+        update_verification_error_rate()
 
         # Decrement active submissions gauge
         if submission_id in active_submission_ids:
