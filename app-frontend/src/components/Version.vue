@@ -6,7 +6,7 @@ const modelVersion = ref('')
 
 // Use environment variables for API base URL
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
-
+// const apiBaseUrl = 'http://localhost:8080/api';
 onMounted(async () => {
   try {
     const endpointAppVersion = `${apiBaseUrl}/version/app`;

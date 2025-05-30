@@ -6,25 +6,29 @@ import axios from "axios";
 
 // Use environment variables for API base URL
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+// const apiBaseUrl = 'http://localhost:8080/api';
 
 const text = ref('');
-const sentiment = ref<boolean | null>(null)
+const sentiment = ref<string | null>(null)
 
 const face = computed(() => {
-  if (sentiment.value === true) return '😄'
-  if (sentiment.value === false) return '😞'
-  return '😐'
+  if (sentiment.value === "positive") return '😄'
+  if (sentiment.value === "negative") return '😞'
+  if (sentiment.value === "neutral") return '😐'
+  return '🤔'
 })
 
 const colorClass = computed(() => {
-  if (sentiment.value === true) return 'green'
-  if (sentiment.value === false) return 'red'
+  if (sentiment.value === "positive") return 'green'
+  if (sentiment.value === "positive") return 'red'
+  if (sentiment.value === "neutral") return 'yellow'
   return 'gray'
 })
 
 const message = computed(() => {
-  if (sentiment.value === true) return 'Sentiment of your review is positive.'
-  if (sentiment.value === false) return 'Sentiment of your review is negative.'
+  if (sentiment.value === "positive") return 'Sentiment of your review is positive.'
+  if (sentiment.value === "negative") return 'Sentiment of your review is negative.'
+  if (sentiment.value === "neutral") return 'Sentiment of your review is neutral.'
   return 'Submit a review for sentiment analysis!'
 })
 
@@ -45,12 +49,12 @@ const submitReview = async () => {
 
     console.log('Review Submitted:', text.value);
     console.log('Result:', data);
-    console.log('Sentiment:', data.sentiment);
+    console.log('Sentiment_label:', data.sentiment_label);
     console.log('submissionId:', data.submissionId);
 
-    sentiment.value = data.sentiment;
+    sentiment.value = data.sentiment_label;
     submissionId.value = data.submissionId;
-    text.value = '';
+    // text.value = '';
   } catch (error) {
     // Show the error message returned from the backend
     alert(`Error while submitting review: ${error}`);

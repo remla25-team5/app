@@ -106,11 +106,14 @@ def submit():
             schema:
             type: object
             properties:
+                confidence:
+                type: number
                 sentiment:
                 type: boolean
                 enum: [true, false]
                 submissionId:
                 type: string
+
         500:
             description: Failed to analyze sentiment
             schema:
@@ -144,7 +147,15 @@ def submit():
 
         # sentiment = True if submission_id_counter % 2 == 0 else False
 
-        sentiment_label = str(sentiment).lower()
+        confidence = response.json().get('confidence')
+        if confidence > 0.8:
+            sentiment_label = "positive"
+        elif confidence < 0.2:
+            sentiment_label = "negative"
+        else:
+            sentiment_label = "neutral"
+
+        # sentiment_label = str(sentiment).lower()
         in_memory_data[submission_id] = {
             'sentiment': sentiment_label
         }
@@ -152,7 +163,7 @@ def submit():
         active_submissions_gauge.labels(sentiment=sentiment_label).inc()
         active_submission_ids.add(submission_id)
 
-        return jsonify({"sentiment": sentiment, "submissionId": submission_id}), 200
+        return jsonify({"sentiment_label": sentiment_label, "submissionId": submission_id}), 200
 
     except requests.exceptions.RequestException as e:
         app.logger.error(f"Error when calling sentiment analysis service: {e}")
