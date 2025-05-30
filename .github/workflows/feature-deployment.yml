@@ -1,11 +1,11 @@
 name: Feature Branch Deployment (V2)
 
-on: push
-  # workflow_dispatch:  
-  #   feature_branch_name:
-  #       description: 'The exact name of the feature branch to deploy.'
-  #       required: true
-  #       type: string 
+on: 
+  workflow_dispatch:  
+    feature_branch_name:
+        description: 'The exact name of the feature branch to deploy.'
+        required: true
+        type: string 
                               
 jobs:
   build_and_push_feature_v2_tag:
