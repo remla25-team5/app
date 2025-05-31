@@ -1,56 +1,58 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed } from "vue";
 import Verify from "@/components/Verify.vue";
 import Version from "@/components/Version.vue";
 import axios from "axios";
 
 // Use environment variables for API base URL
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 // const apiBaseUrl = 'http://localhost:8080/api';
 
-const text = ref('');
-const sentiment = ref<string | null>(null)
+const text = ref("");
+const sentiment = ref<string | null>(null);
 
 const face = computed(() => {
-  if (sentiment.value === "positive") return '😄'
-  if (sentiment.value === "negative") return '😞'
-  if (sentiment.value === "neutral") return '😐'
-  return '🤔'
-})
+  if (sentiment.value === "positive") return "😄";
+  if (sentiment.value === "negative") return "😞";
+  if (sentiment.value === "neutral") return "😐";
+  return "🤔";
+});
 
 const colorClass = computed(() => {
-  if (sentiment.value === "positive") return 'green'
-  if (sentiment.value === "positive") return 'red'
-  if (sentiment.value === "neutral") return 'yellow'
-  return 'gray'
-})
+  if (sentiment.value === "positive") return "green";
+  if (sentiment.value === "positive") return "red";
+  if (sentiment.value === "neutral") return "yellow";
+  return "gray";
+});
 
 const message = computed(() => {
-  if (sentiment.value === "positive") return 'Sentiment of your review is positive.'
-  if (sentiment.value === "negative") return 'Sentiment of your review is negative.'
-  if (sentiment.value === "neutral") return 'Sentiment of your review is neutral.'
-  return 'Submit a review for sentiment analysis!'
-})
+  if (sentiment.value === "positive")
+    return "Sentiment of your review is positive.";
+  if (sentiment.value === "negative")
+    return "Sentiment of your review is negative.";
+  if (sentiment.value === "neutral")
+    return "Sentiment of your review is neutral.";
+  return "Submit a review for sentiment analysis!";
+});
 
-
-const submissionId = ref('');
+const submissionId = ref("");
 
 // Method to handle the submission of the review
 const submitReview = async () => {
   const endpoint = `${apiBaseUrl}/submit`;
 
   if (!text.value.trim()) {
-    alert('Submitting empty review not allowed');
+    alert("Submitting empty review not allowed");
     return;
   }
 
   try {
     const { data } = await axios.post(endpoint, { text: text.value });
 
-    console.log('Review Submitted:', text.value);
-    console.log('Result:', data);
-    console.log('Sentiment_label:', data.sentiment_label);
-    console.log('submissionId:', data.submissionId);
+    console.log("Review Submitted:", text.value);
+    console.log("Result:", data);
+    console.log("Sentiment_label:", data.sentiment_label);
+    console.log("submissionId:", data.submissionId);
 
     sentiment.value = data.sentiment_label;
     submissionId.value = data.submissionId;
@@ -61,18 +63,17 @@ const submitReview = async () => {
     console.log(`Error while submitting review: ${error}`);
   }
 };
-
 </script>
 
 <template>
   <div class="container">
-    <h2 class="title">Write your review</h2>
+    <h2 class="title">Write your review TEST</h2>
     <textarea
-        v-model="text"
-        class="text-box"
-        placeholder="Start typing here..."
-        rows="10"
-        cols="50"
+      v-model="text"
+      class="text-box"
+      placeholder="Start typing here..."
+      rows="10"
+      cols="50"
     ></textarea>
     <button @click="submitReview" class="submit-btn">Submit</button>
     <div class="sentiment-container">
@@ -82,9 +83,7 @@ const submitReview = async () => {
     <Verify :submissionId="submissionId"></Verify>
     <Version></Version>
   </div>
-
 </template>
-
 
 <style scoped>
 .sentiment-container {
@@ -108,7 +107,6 @@ const submitReview = async () => {
   font-size: 1.8rem;
   margin-top: 1rem;
 }
-
 
 .emoji {
   font-size: 4rem;
@@ -159,14 +157,14 @@ const submitReview = async () => {
 }
 
 .green {
-  color: #4CAF50;
+  color: #4caf50;
 }
 
 .red {
-  color: #F44336;
+  color: #f44336;
 }
 
 .gray {
-  color: #9E9E9E;
+  color: #9e9e9e;
 }
 </style>
