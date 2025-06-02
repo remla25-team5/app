@@ -172,7 +172,7 @@ def submit():
         active_submissions_gauge.labels(sentiment=sentiment_label).inc()
         active_submission_ids.add(submission_id)
 
-        return jsonify({"sentiment_label": sentiment_label, "submissionId": submission_id}), 200
+        return jsonify({"sentiment": sentiment_label, "submissionId": submission_id}), 200
 
     except requests.exceptions.RequestException as e:
         app.logger.error(f"Error when calling sentiment analysis service: {e}")

@@ -51,10 +51,10 @@ const submitReview = async () => {
 
     console.log("Review Submitted:", text.value);
     console.log("Result:", data);
-    console.log("Sentiment_label:", data.sentiment_label);
+    console.log("Sentiment_label:", data.sentiment);
     console.log("submissionId:", data.submissionId);
 
-    sentiment.value = data.sentiment_label;
+    sentiment.value = data.sentiment;
     submissionId.value = data.submissionId;
     // text.value = '';
   } catch (error) {
