@@ -52,7 +52,6 @@ jobs:
           release_branches: main
           pre_release_branches: 'NONE'
           default_bump: ${{ inputs.bump_level }}
-          default_bump: patch
           tag_prefix: v
 
       - name: Set up QEMU
