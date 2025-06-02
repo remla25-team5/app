@@ -2,7 +2,7 @@ import os
 
 import requests
 from flasgger import Swagger
-from flask import Flask, request, send_from_directory, jsonify, make_response
+from flask import Flask, make_response, request, send_from_directory, jsonify
 from lib_version.version_util import VersionUtil
 import time
 from prometheus_client import Gauge, Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
@@ -18,6 +18,7 @@ MODEL_SERVICE_HOST = os.getenv('MODEL_SERVICE_HOST', '0.0.0.0')
 MODEL_SERVICE_PORT = os.getenv('MODEL_SERVICE_PORT', '5000')
 CURRENT_APP_VERSION = os.getenv('APP_VERSION', 'v1')
 COOKIE_NAME = "app-version-preference"
+
 
 # Fix URL construction to handle both formats with and without protocol
 if MODEL_SERVICE_HOST.startswith('http://') or MODEL_SERVICE_HOST.startswith('https://'):
@@ -115,14 +116,11 @@ def submit():
             schema:
             type: object
             properties:
-                confidence:
-                type: number
                 sentiment:
                 type: boolean
                 enum: [true, false]
                 submissionId:
                 type: string
-
         500:
             description: Failed to analyze sentiment
             schema:
@@ -156,15 +154,7 @@ def submit():
 
         # sentiment = True if submission_id_counter % 2 == 0 else False
 
-        confidence = response.json().get('confidence')
-        if confidence > 0.8:
-            sentiment_label = "positive"
-        elif confidence < 0.2:
-            sentiment_label = "negative"
-        else:
-            sentiment_label = "neutral"
-
-        # sentiment_label = str(sentiment).lower()
+        sentiment_label = str(sentiment).lower()
         in_memory_data[submission_id] = {
             'sentiment': sentiment_label
         }
@@ -172,7 +162,7 @@ def submit():
         active_submissions_gauge.labels(sentiment=sentiment_label).inc()
         active_submission_ids.add(submission_id)
 
-        return jsonify({"sentiment": sentiment_label, "submissionId": submission_id}), 200
+        return jsonify({"sentiment": sentiment, "submissionId": submission_id}), 200
 
     except requests.exceptions.RequestException as e:
         app.logger.error(f"Error when calling sentiment analysis service: {e}")
