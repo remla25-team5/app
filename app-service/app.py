@@ -2,7 +2,7 @@ import os
 
 import requests
 from flasgger import Swagger
-from flask import Flask, request, send_from_directory, jsonify
+from flask import Flask, request, send_from_directory, jsonify, make_response
 from lib_version.version_util import VersionUtil
 import time
 from prometheus_client import Gauge, Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
@@ -16,6 +16,8 @@ APP_SERVICE_HOST = os.getenv('APP_SERVICE_HOST', '0.0.0.0')
 APP_SERVICE_PORT = os.getenv('APP_SERVICE_PORT', '8080')
 MODEL_SERVICE_HOST = os.getenv('MODEL_SERVICE_HOST', '0.0.0.0')
 MODEL_SERVICE_PORT = os.getenv('MODEL_SERVICE_PORT', '5000')
+CURRENT_APP_VERSION = os.getenv('APP_VERSION', 'v1')
+COOKIE_NAME = "app-version-preference"
 
 # Fix URL construction to handle both formats with and without protocol
 if MODEL_SERVICE_HOST.startswith('http://') or MODEL_SERVICE_HOST.startswith('https://'):
@@ -86,7 +88,14 @@ def metrics():
 @app.route('/')
 def index():
     # Serve the index.html from the dist folder
-    return send_from_directory(os.path.join(app.static_folder), 'index.html')
+    response = make_response(send_from_directory(os.path.join(app.static_folder), 'index.html'))
+    response.set_cookie(COOKIE_NAME, 
+                        value=CURRENT_APP_VERSION, 
+                        path='/',      
+                        httponly=False, 
+                        samesite='Lax'  
+                       ) 
+    return response
 
 
 @app.route('/api/submit', methods=['POST'])
