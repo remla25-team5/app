@@ -158,9 +158,10 @@ def submit():
 
         confidence = response.json().get('confidence')
         if confidence > 0.8:
-            sentiment_label = "positive"
-        elif confidence < 0.2:
-            sentiment_label = "negative"
+            if sentiment:
+                sentiment_label = "positive"
+            else:
+                sentiment_label = "negative"
         else:
             sentiment_label = "neutral"
 
