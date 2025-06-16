@@ -67,7 +67,7 @@ const submitReview = async () => {
 
 <template>
   <div class="container">
-    <h2 class="title">Write your review TEST</h2>
+    <h2 class="title">Write your review</h2>
     <textarea
       v-model="text"
       class="text-box"

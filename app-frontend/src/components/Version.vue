@@ -6,7 +6,7 @@ const modelVersion = ref("");
 const appRelease = ref("");
 
 // Use environment variables for API base URL
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 // const apiBaseUrl = 'http://localhost:8080/api';
 onMounted(async () => {
   try {
@@ -52,7 +52,7 @@ onMounted(async () => {
 
 <template>
   <div class="version-box">
-    <div><strong>Release version (v1/v2):</strong> {{ appRelease }}</div>
+    <div><strong>Feature branch:</strong> {{ appRelease != "v1" }}</div>
     <div><strong>Lib-version version:</strong> {{ appVersion }}</div>
     <div><strong>Lib-ml version:</strong> {{ modelVersion }}</div>
   </div>
