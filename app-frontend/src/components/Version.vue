@@ -4,7 +4,6 @@ import { ref, onMounted } from "vue";
 const appVersion = ref("");
 const modelVersion = ref("");
 const appRelease = ref("");
-const modelRelease = ref("");
 
 // Use environment variables for API base URL
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -34,17 +33,6 @@ onMounted(async () => {
     const releaseData = await releaseRes.json();
     appRelease.value = releaseData.release;
 
-    const modelReleaseUrl = `${apiBaseUrl}/version/model-release`;
-    const modelreleaseRes = await fetch(modelReleaseUrl);
-    if (!modelreleaseRes.ok) {
-      // If the status is not 200
-      const errorMessage = `Failed to fetch model release. Status: ${modelreleaseRes.status}`;
-      alert(`${errorMessage} - ${await modelreleaseRes.text()}`); // Show both status and response message
-      throw new Error(errorMessage);
-    }
-    const modelreleaseData = await modelreleaseRes.json();
-    modelRelease.value = modelreleaseData.release;
-
     const endpointModelVersion = `${apiBaseUrl}/version/model`;
     const modelRes = await fetch(endpointModelVersion);
     if (!modelRes.ok) {
@@ -64,8 +52,7 @@ onMounted(async () => {
 
 <template>
   <div class="version-box">
-    <div><strong>Model release:</strong> {{ modelRelease }}</div>
-    <div><strong>App release:</strong> {{ appRelease }}</div>
+    <div><strong>Release version (v1/v2):</strong> {{ appRelease }}</div>
     <div><strong>Lib-version version:</strong> {{ appVersion }}</div>
     <div><strong>Lib-ml version:</strong> {{ modelVersion }}</div>
   </div>
