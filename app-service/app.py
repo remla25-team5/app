@@ -299,3 +299,5 @@ def version_app_release():
                 type: string
     """
     return {"release": CURRENT_APP_VERSION}, 200
+
+app.run(host=APP_SERVICE_HOST, port=int(APP_SERVICE_PORT), debug=True)
