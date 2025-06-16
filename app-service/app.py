@@ -16,7 +16,7 @@ APP_SERVICE_HOST = os.getenv('APP_SERVICE_HOST', '0.0.0.0')
 APP_SERVICE_PORT = os.getenv('APP_SERVICE_PORT', '8080')
 MODEL_SERVICE_HOST = os.getenv('MODEL_SERVICE_HOST', '0.0.0.0')
 MODEL_SERVICE_PORT = os.getenv('MODEL_SERVICE_PORT', '5000')
-CURRENT_APP_VERSION = os.getenv('APP_VERSION', 'v1')
+CURRENT_APP_VERSION = os.getenv('APP_VERSION', 'v2')
 COOKIE_NAME = "app-version-preference"
 
 # Fix URL construction to handle both formats with and without protocol
