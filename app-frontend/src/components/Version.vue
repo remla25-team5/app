@@ -52,7 +52,7 @@ onMounted(async () => {
 
 <template>
   <div class="version-box">
-    <div><strong>Release version (v1/v2):</strong> {{ appRelease }}</div>
+    <div><strong>Feature branch:</strong> {{ appRelease != "v1" }}</div>
     <div><strong>Lib-version version:</strong> {{ appVersion }}</div>
     <div><strong>Lib-ml version:</strong> {{ modelVersion }}</div>
   </div>
