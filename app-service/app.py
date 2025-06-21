@@ -284,5 +284,20 @@ def version_model():
         app.logger.error(f"Error while fetching model version: {e}")
         return jsonify({"error": f"Failed to get model version: {str(e)}"}), 500
 
+@app.route('/api/version/app-release', methods=['GET'])
+def version_app_release():
+    """
+    Get distinction between main release (v1) and feature release (v2) of the app-service
+    ---
+    responses:
+        200:
+            description: A JSON object with the release version
+            schema:
+            type: object
+            properties:
+                release:
+                type: string
+    """
+    return {"release": CURRENT_APP_VERSION}, 200
 
 app.run(host=APP_SERVICE_HOST, port=int(APP_SERVICE_PORT), debug=True)
