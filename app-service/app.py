@@ -63,6 +63,18 @@ verification_error_rate_gauge = Gauge(
     'Percentage of incorrect verifications in the last week'
 )
 
+def initialize_metrics():
+    """
+    Initialize Prometheus metrics.
+    This function sets up the initial state of the metrics.
+    """
+    # Set initial values for gauges
+    sentiments = ['true', 'false']
+    for s in sentiments:
+        active_submissions_gauge.labels(sentiment=s).set(0)
+        total_submissions_counter.labels(sentiment=s).inc(0)
+    verification_error_rate_gauge.set(0)
+
 # ML Test Score: Monitor 7: The model has not experienced a regression in prediction quality on served data
 def update_verification_error_rate():
     """
@@ -300,4 +312,5 @@ def version_app_release():
     """
     return {"release": CURRENT_APP_VERSION}, 200
 
+initialize_metrics()
 app.run(host=APP_SERVICE_HOST, port=int(APP_SERVICE_PORT), debug=True)
